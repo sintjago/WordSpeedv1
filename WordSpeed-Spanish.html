@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Formar Palabras</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f4;
+      font-family: Arial, sans-serif;
+      color: #333;
+    }
+
+    h1 {
+      font-size: 2em;
+      margin: 0;
+    }
+
+    .instructions {
+      font-size: 12px;
+      color: #555;
+      text-align: center;
+      margin: 5px 0 20px;
+      max-width: 400px;
+    }
+
+    .container {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .word-list {
+      background-color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      align-self: flex-start;
+      margin-top: 100px;
+    }
+
+    .word-list h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.2em;
+      color: #666;
+    }
+
+    #wordButtons {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+    }
+
+    .word-list button {
+      margin: 4px 0;
+      padding: 6px 12px;
+      font-size: 1em;
+      background-color: #e0e0e0;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: #333;
+    }
+
+    .word-list button.active {
+      background-color: #333;
+      color: #fff;
+    }
+
+    .word-list button.completed {
+      text-decoration: line-through;
+      background-color: #ccc;
+    }
+
+    .title-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .lifeCounter {
+      font-size: 1em;
+      background: #fff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      margin-left: 10px;
+    }
+
+    .collected-letters {
+      background-color: #fff;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .collected-letters h2 {
+      width: 100%;
+      margin: 0 0 5px 0;
+      font-size: 1.2em;
+      color: #666;
+      text-align: center;
+    }
+
+    .letter {
+      background-color: #e0e0e0;
+      padding: 8px;
+      font-size: 1.2em;
+      color: #333;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .word {
+      background-color: #cce5ff;
+      padding: 6px 10px;
+      margin: 3px;
+      border-radius: 6px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+
+    .building {
+      display: grid;
+      grid-template-columns: repeat(6, 60px);
+      grid-template-rows: repeat(5, 60px);
+      gap: 5px;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .window {
+      width: 100%;
+      height: 100%;
+      background-color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.5em;
+      color: #333;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #wordInput {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    #csvInput {
+      width: 160px;
+      margin-top: 5px;
+      padding: 6px;
+      font-size: 14px;
+    }
+
+    #submitWords {
+      margin-top: 5px;
+      padding: 6px 10px;
+      font-size: 14px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="word-list">
+      <h2>Palabras</h2>
+      <div id="wordButtons"></div>
+    </div>
+    <div>
+      <div class="title-bar">
+        <h1>Formar Palabras</h1>
+        <div id="lifeCounter" class="lifeCounter">Vidas: 3</div>
+      </div>
+      <p class="instructions">
+        Selecciona una palabra y haz clic en las letras en orden. Doble clic en una letra recogida para eliminarla. Cada 5 palabras completadas ganas 1 vida extra.
+      </p>
+      <div class="building" id="building"></div>
+      <div class="collected-letters" id="collectedLetters">
+        <h2>Letras Recogidas</h2>
+      </div>
+      <div class="collected-letters" id="completedWords">
+        <h2>Palabras Completadas</h2>
+      </div>
+      <div id="wordInput">
+        <label for="csvInput">Ingresa tu propia lista (CSV):</label>
+        <input id="csvInput" type="text" placeholder="ej. casa, perro, sol" />
+        <button id="submitWords">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const alphabet = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ';
+    let activeWord = '';
+    let currentIndex = 0;
+    let lives = 3;
+    let completedCount = 0;
+    const collectedLetters = [];
+    const completedWords = [];
+    let wordList = ["CASA", "PERRO", "PLUMA", "FLOTA", "GATOS", "MANGO", "RATON", "LLAVE", "NIEVE", "SOLAR"];
+
+    const wordButtonsContainer = document.getElementById('wordButtons');
+    const building = document.getElementById('building');
+    const collectedLettersContainer = document.getElementById('collectedLetters');
+    const completedWordsContainer = document.getElementById('completedWords');
+    const lifeCounter = document.getElementById('lifeCounter');
+    const csvInput = document.getElementById('csvInput');
+    const submitWords = document.getElementById('submitWords');
+
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-ES';
+      window.speechSynthesis.cancel();
+      setTimeout(() => window.speechSynthesis.speak(utterance), 100);
+    }
+
+    function populateWordButtons() {
+      wordButtonsContainer.innerHTML = '';
+      wordList.forEach(word => {
+        const btn = document.createElement('button');
+        btn.textContent = word;
+        btn.onclick = () => selectWord(word);
+        wordButtonsContainer.appendChild(btn);
+      });
+    }
+
+    function selectWord(word) {
+      activeWord = word;
+      currentIndex = 0;
+      document.querySelectorAll('.word-list button').forEach(button => {
+        button.classList.toggle('active', button.textContent === word);
+      });
+      updateCollectedLetters();
+      speak(word);
+    }
+
+    function handleLetterClick(window) {
+      if (!activeWord || lives === 0) return;
+      const letter = window.textContent;
+      if (!letter) return;
+
+      speak(letter);
+
+      if (letter === activeWord[currentIndex]) {
+        currentIndex++;
+        window.textContent = '';
+        collectedLetters.push(letter);
+        updateCollectedLetters();
+
+        if (currentIndex === activeWord.length) {
+          alert(`¡Felicidades! Completaste la palabra: ${activeWord}`);
+          completedWords.push(activeWord);
+          completedCount++;
+          if (completedCount % 5 === 0) {
+            lives++;
+            updateLives();
+            alert("¡Bonificación! Has ganado 1 vida extra por completar 5 palabras.");
+          }
+          addCompletedWord(activeWord);
+          markWordAsCompleted(activeWord);
+          selectWord('');
+          collectedLetters.length = 0;
+          updateCollectedLetters();
+        }
+      } else {
+        lives--;
+        updateLives();
+        if (lives === 0) {
+          alert('¡Juego terminado! Te quedaste sin vidas.');
+          resetGame();
+        }
+      }
+    }
+
+    function markWordAsCompleted(word) {
+      document.querySelectorAll('.word-list button').forEach(button => {
+        if (button.textContent === word) {
+          button.classList.remove('active');
+          button.classList.add('completed');
+        }
+      });
+    }
+
+    function updateLives() {
+      lifeCounter.textContent = `Vidas: ${lives}`;
+    }
+
+    function resetGame() {
+      lives = 3;
+      completedCount = 0;
+      activeWord = '';
+      currentIndex = 0;
+      collectedLetters.length = 0;
+      updateCollectedLetters();
+      updateLives();
+      document.querySelectorAll('.word-list button').forEach(button => {
+        button.classList.remove('active');
+        button.classList.remove('completed');
+      });
+    }
+
+    function updateCollectedLetters() {
+      collectedLettersContainer.innerHTML = '<h2>Letras Recogidas</h2>';
+      collectedLetters.forEach((letter, index) => {
+        const letterDiv = document.createElement('div');
+        letterDiv.className = 'letter';
+        letterDiv.textContent = letter;
+        letterDiv.ondblclick = () => {
+          collectedLetters.splice(index, 1);
+          updateCollectedLetters();
+        };
+        collectedLettersContainer.appendChild(letterDiv);
+      });
+    }
+
+    function addCompletedWord(word) {
+      const wordDiv = document.createElement('div');
+      wordDiv.className = 'word';
+      wordDiv.textContent = word;
+      wordDiv.onclick = () => speak(word);
+      completedWordsContainer.appendChild(wordDiv);
+    }
+
+    for (let i = 0; i < 30; i++) {
+      const windowDiv = document.createElement('div');
+      windowDiv.className = 'window';
+      windowDiv.onclick = () => handleLetterClick(windowDiv);
+      building.appendChild(windowDiv);
+    }
+
+    const windows = Array.from(document.querySelectorAll('.window'));
+
+    function getRandomLetter() {
+      return alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+
+    function showRandomLetterInWindow() {
+      const randomWindow = windows[Math.floor(Math.random() * windows.length)];
+      randomWindow.textContent = getRandomLetter();
+      setTimeout(() => {
+        randomWindow.textContent = '';
+      }, 2500);
+    }
+
+    function startGame() {
+      setInterval(showRandomLetterInWindow, 200);
+    }
+
+    submitWords.onclick = () => {
+      const input = csvInput.value.trim().toUpperCase();
+      if (!input) return;
+      const words = input.split(',').map(w => w.trim()).filter(w => w.length > 0);
+      if (words.length > 0) {
+        wordList = words;
+        populateWordButtons();
+        resetGame();
+      } else {
+        alert("Por favor ingresa al menos una palabra válida separada por comas.");
+      }
+    };
+
+    populateWordButtons();
+    updateLives();
+    startGame();
+  </script>
+</body>
+</html>
